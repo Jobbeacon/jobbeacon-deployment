@@ -1,24 +1,8 @@
-services:
-  rabbitmq:
-    image: rabbitmq:3.13-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      interval: 10s
-      timeout: 5s
-      retries: 5
+name: jobbeacon
 
+services:
   postgres:
     image: postgres:16-alpine
-    container_name: app-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-job_platform}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -28,15 +12,35 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-app_db}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
     restart: unless-stopped
+    networks:
+      - jobbeacon
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - jobbeacon
 
   redis:
     image: redis:7-alpine
-    container_name: app-redis
     command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -48,8 +52,80 @@ services:
       timeout: 3s
       retries: 10
     restart: unless-stopped
+    networks:
+      - jobbeacon
+
+  backend:
+    image: ${BACKEND_IMAGE:-jobbeacon/backend:latest}
+    build:
+      context: ../Jobbeacon-be
+      dockerfile: Dockerfile
+    environment:
+      PROFILE_ACTIVE: ${PROFILE_ACTIVE:-docker}
+      PORT: 8080
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-job_platform}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-guest}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      FIREBASE_CREDENTIALS_PATH: /run/secrets/firebase-service-account.json
+    volumes:
+      - type: bind
+        source: ${FIREBASE_CREDENTIALS_FILE:-./firebase-service-account.json}
+        target: /run/secrets/firebase-service-account.json
+        read_only: true
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - jobbeacon
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-jobbeacon/frontend:latest}
+    build:
+      context: ../Jobbeacon-fe
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+      VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-your_api_key}
+      VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN:-your-project.firebaseapp.com}
+      VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID:-your_project_id}
+      VITE_FIREBASE_STORAGE_BUCKET: ${VITE_FIREBASE_STORAGE_BUCKET:-your-project.firebasestorage.app}
+      VITE_FIREBASE_MESSAGING_SENDER_ID: ${VITE_FIREBASE_MESSAGING_SENDER_ID:-your_sender_id}
+      VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID:-your_app_id}
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - jobbeacon
+
+networks:
+  jobbeacon:
+    driver: bridge
 
 volumes:
-  rabbitmq_data:
   postgres_data:
+  rabbitmq_data:
   redis_data:
