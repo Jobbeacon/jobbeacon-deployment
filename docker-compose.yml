@@ -61,7 +61,7 @@ services:
       context: ../Jobbeacon-be
       dockerfile: Dockerfile
     environment:
-      PROFILE_ACTIVE: ${PROFILE_ACTIVE:-docker}
+      PROFILE_ACTIVE: ${PROFILE_ACTIVE:-prod}
       PORT: 8080
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-job_platform}
       DB_USERNAME: ${POSTGRES_USER:-postgres}
@@ -72,6 +72,7 @@ services:
       RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-guest}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       FIREBASE_CREDENTIALS_PATH: /run/secrets/firebase-service-account.json
+      LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
     volumes:
       - type: bind
         source: ${FIREBASE_CREDENTIALS_FILE:-./firebase-service-account.json}
@@ -121,6 +122,42 @@ services:
     networks:
       - jobbeacon
 
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: jobbeacon-loki
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - jobbeacon
+
+  grafana:
+    image: grafana/grafana:12.0.0
+    container_name: jobbeacon-grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - jobbeacon
+
 networks:
   jobbeacon:
     driver: bridge
@@ -129,3 +166,5 @@ volumes:
   postgres_data:
   rabbitmq_data:
   redis_data:
+  loki_data:
+  grafana_data:
