@@ -67,3 +67,4 @@ node_modules
 **-init_data.sql
 local-docker-compose.yml
 secret/
+firebase-service-account.json
