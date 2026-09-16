@@ -93,6 +93,8 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       FIREBASE_CREDENTIALS_PATH: /run/secrets/firebase-service-account.json
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
+      TZ: Asia/Ho_Chi_Minh
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh"   
     volumes:
       - type: bind
         source: ${FIREBASE_CREDENTIALS_FILE:-./firebase-service-account.json}
