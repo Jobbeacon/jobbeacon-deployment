@@ -50,13 +50,14 @@ services:
       - jobbeacon
 
   redis:
-    image: redis:7-alpine
+    image: redis/redis-stack-server:latest
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
-    command: ["redis-server", "--appendonly", "yes"]
+    environment:
+      REDIS_ARGS: "--appendonly yes"
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
