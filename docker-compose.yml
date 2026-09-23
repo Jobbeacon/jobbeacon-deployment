@@ -123,6 +123,57 @@ services:
     networks:
       - jobbeacon
 
+  crawler:
+    image: ${CRAWLER_IMAGE:-jobbeacon/crawler:latest}
+    build:
+      context: ../job-posting-crawler
+      dockerfile: Dockerfile
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    environment:
+      PROFILE_ACTIVE: ${PROFILE_ACTIVE:-prod}
+      PORT: 8081
+      DB_URL: jdbc:postgresql://postgres:5432/${JOB_CRAWLER_DB:-job_crawler}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      LIQUIBASE_ENABLED: ${CRAWLER_LIQUIBASE_ENABLED:-true}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-guest}
+      JOB_URL_BLOOM_FILTER_NAME: ${BLOOM_FILTER_NAME:-crawler:urls}
+      PLAYWRIGHT_HEADLESS: ${PLAYWRIGHT_HEADLESS:-true}
+      PLAYWRIGHT_PROXIES: ${PLAYWRIGHT_PROXIES:-}
+      CRAWLER_WORKER_POOL_SIZE: ${CRAWLER_WORKER_POOL_SIZE:-1}
+      CRAWLER_MAX_DEPTH: ${CRAWLER_MAX_DEPTH:-5}
+      LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
+      TZ: Asia/Ho_Chi_Minh
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh"
+    ports:
+      - "${CRAWLER_PORT:-8081}:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - jobbeacon
+
   frontend:
     image: ${FRONTEND_IMAGE:-jobbeacon/frontend:latest}
     build:
