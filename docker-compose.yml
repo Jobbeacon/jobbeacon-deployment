@@ -11,6 +11,8 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      JOB_PLATFORM_DB: ${JOB_PLATFORM_DB:-job_platform}
+      JOB_CRAWLER_DB: ${JOB_CRAWLER_DB:-job_crawler}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -58,6 +60,7 @@ services:
         max-file: "5"
     environment:
       REDIS_ARGS: "--appendonly yes"
+      BLOOM_FILTER_NAME: ${BLOOM_FILTER_NAME:-crawler:urls}
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:

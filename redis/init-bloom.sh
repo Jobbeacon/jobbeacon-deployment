@@ -1,6 +1,6 @@
 #!/bin/sh
 
-redis-stack-server &
+redis-stack-server $REDIS_ARGS &
 REDIS_PID=$!
 
 echo "Waiting for Redis..."
@@ -11,7 +11,7 @@ done
 
 echo "Redis is ready"
 
-redis-cli BF.RESERVE crawler:urls 0.001 10000000 || true
+redis-cli BF.RESERVE ${BLOOM_FILTER_NAME:-crawler:urls} 0.001 10000000 || true
 
 echo "Bloom filter initialized"
 
