@@ -2,7 +2,7 @@ name: jobbeacon
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     logging:
       driver: json-file
       options:
