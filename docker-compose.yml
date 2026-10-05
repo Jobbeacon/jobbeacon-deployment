@@ -3,6 +3,15 @@ name: jobbeacon
 services:
   postgres:
     image: pgvector/pgvector:pg16
+    # CDC reads job_search_outbox through a logical replication slot.
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_wal_senders=10
+      - -c
+      - max_replication_slots=10
     logging:
       driver: json-file
       options:
