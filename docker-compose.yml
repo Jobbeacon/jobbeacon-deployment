@@ -106,6 +106,8 @@ services:
       RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-guest}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_JOB_INDEX: ${ELASTICSEARCH_JOB_INDEX:-jobs}
       FIREBASE_CREDENTIALS_PATH: /run/secrets/firebase-service-account.json
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
       TZ: Asia/Ho_Chi_Minh
@@ -121,6 +123,8 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      elasticsearch:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
