@@ -106,7 +106,7 @@ services:
       RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-guest}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
-      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
       ELASTICSEARCH_JOB_INDEX: ${ELASTICSEARCH_JOB_INDEX:-jobs}
       FIREBASE_CREDENTIALS_PATH: /run/secrets/firebase-service-account.json
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
@@ -210,6 +210,46 @@ services:
       interval: 10s
       timeout: 5s
       retries: 30
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - jobbeacon
+
+  sync:
+    image: ${SYNC_IMAGE:-jobbeacon/sync:latest}
+    build:
+      context: ../Jobbeacon-sync
+      dockerfile: Dockerfile
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    environment:
+      PROFILE_ACTIVE: ${PROFILE_ACTIVE:-prod}
+      PORT: 8081
+      DB_URL: jdbc:postgresql://postgres:5432/${JOB_PLATFORM_DB:-job_platform}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
+      ELASTICSEARCH_JOB_INDEX: ${ELASTICSEARCH_JOB_INDEX:-jobs}
+      SYNC_MODE: ${SYNC_MODE:-stream}
+      SYNC_SLOT_NAME: ${SYNC_SLOT_NAME:-jobbeacon_search}
+      SYNC_PUBLICATION_NAME: ${SYNC_PUBLICATION_NAME:-jobbeacon_search}
+      TZ: Asia/Ho_Chi_Minh
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh"
+    ports:
+      - "${SYNC_PORT:-8082}:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
       start_period: 40s
     restart: unless-stopped
     networks:
