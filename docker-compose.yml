@@ -98,7 +98,7 @@ services:
     environment:
       PROFILE_ACTIVE: ${PROFILE_ACTIVE:-prod}
       PORT: 8080
-      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-job_platform}
+      DB_URL: jdbc:postgresql://postgres:5432/${JOB_PLATFORM_DB:-job_platform}
       DB_USERNAME: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       RABBITMQ_HOST: rabbitmq
@@ -109,6 +109,11 @@ services:
       ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
       ELASTICSEARCH_JOB_INDEX: ${ELASTICSEARCH_JOB_INDEX:-jobs}
       FIREBASE_CREDENTIALS_PATH: /run/secrets/firebase-service-account.json
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-2}
+      GEMINI_EMBEDDING_DIMENSION: ${GEMINI_EMBEDDING_DIMENSION:-1536}
+      CATEGORY_CLASSIFICATION_MIN_SCORE: ${CATEGORY_CLASSIFICATION_MIN_SCORE:-0.72}
+      CATEGORY_CLASSIFICATION_MIN_MARGIN: ${CATEGORY_CLASSIFICATION_MIN_MARGIN:-0.03}
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
       TZ: Asia/Ho_Chi_Minh
       JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh"   
