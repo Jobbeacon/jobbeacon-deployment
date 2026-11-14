@@ -148,7 +148,6 @@ services:
       CATEGORY_CLASSIFICATION_MIN_MARGIN: ${CATEGORY_CLASSIFICATION_MIN_MARGIN:-0.03}
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-change_this_internal_token}
-      GATEWAY_INTERNAL_SECRET: ${GATEWAY_INTERNAL_SECRET:?GATEWAY_INTERNAL_SECRET is required}
       EUREKA_URL: ${EUREKA_URL:-http://discovery:8761/eureka/}
       TZ: Asia/Ho_Chi_Minh
       JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh"
@@ -197,7 +196,6 @@ services:
       BACKEND_URL: http://backend:8080
       RCM_URL: http://recommendation:8083
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
-      GATEWAY_INTERNAL_SECRET: ${GATEWAY_INTERNAL_SECRET:?GATEWAY_INTERNAL_SECRET is required}
       TZ: Asia/Ho_Chi_Minh
     ports:
       - "${GATEWAY_PORT:-8088}:8088"
