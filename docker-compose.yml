@@ -147,6 +147,8 @@ services:
       CATEGORY_CLASSIFICATION_MIN_SCORE: ${CATEGORY_CLASSIFICATION_MIN_SCORE:-0.72}
       CATEGORY_CLASSIFICATION_MIN_MARGIN: ${CATEGORY_CLASSIFICATION_MIN_MARGIN:-0.03}
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-change_this_internal_token}
+      GATEWAY_INTERNAL_SECRET: ${GATEWAY_INTERNAL_SECRET:?GATEWAY_INTERNAL_SECRET is required}
       EUREKA_URL: ${EUREKA_URL:-http://discovery:8761/eureka/}
       TZ: Asia/Ho_Chi_Minh
       JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh"
@@ -174,6 +176,34 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+    restart: unless-stopped
+    networks:
+      - jobbeacon
+
+  gateway:
+    image: ${GATEWAY_IMAGE:-jobbeacon/gateway:latest}
+    build:
+      context: ../Jobbeacon-gateway
+      dockerfile: Dockerfile
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    environment:
+      PROFILE_ACTIVE: ${PROFILE_ACTIVE:-prod}
+      SERVER_PORT: 8088
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:?FIREBASE_PROJECT_ID is required}
+      BACKEND_URL: http://backend:8080
+      RCM_URL: http://recommendation:8083
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      GATEWAY_INTERNAL_SECRET: ${GATEWAY_INTERNAL_SECRET:?GATEWAY_INTERNAL_SECRET is required}
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "${GATEWAY_PORT:-8088}:8088"
+    depends_on:
+      backend:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - jobbeacon
@@ -403,7 +433,7 @@ services:
         max-size: "10m"
         max-file: "5"
     environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8088}
       VITE_RECOMMENDATION_API_BASE_URL: ${VITE_RECOMMENDATION_API_BASE_URL:-http://localhost:8083}
       VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-your_api_key}
       VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN:-your-project.firebaseapp.com}
