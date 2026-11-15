@@ -1,0 +1,45 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "ci/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vm
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts
+
+      - name: Pull and apply
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+        run: |
+          ssh "$VM_USER@$VM_HOST" 'set -e
+            cd /opt/jobbeacon/jobbeacon-deployment
+            before=$(git rev-parse HEAD)
+            git pull --ff-only
+            changed=$(git diff --name-only "$before" HEAD)
+            docker compose up -d --no-build --wait --wait-timeout 600
+            for service in prometheus loki grafana redis; do
+              if printf "%s\n" "$changed" | grep -q "^$service/"; then
+                echo "Restarting $service: its mounted config changed"
+                docker compose restart "$service"
+              fi
+            done'
