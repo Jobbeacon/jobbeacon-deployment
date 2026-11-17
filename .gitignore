@@ -69,3 +69,7 @@ local-docker-compose.yml
 secret/
 firebase-service-account.json
 
+
+# Large data files mounted into containers (data/README.md says where to get them)
+data/*
+!data/README.md

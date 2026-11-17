@@ -16,6 +16,7 @@ Mọi cổng chỉ bind `127.0.0.1`, trừ frontend (cấu hình qua `FRONTEND_B
 
 ```bash
 cp .env.example .env        # điền FIREBASE_PROJECT_ID, VITE_FIREBASE_*, GEMINI_API_KEY
+# đặt category_embeddings.json vào data/ (xem data/README.md)
 docker compose up -d --build
 docker compose up -d postgres elasticsearch rabbitmq redis neo4j discovery   # chỉ hạ tầng, service chạy bằng mvn
 ```
@@ -159,7 +160,14 @@ Firebase Console → **Authentication** → **Settings** → **Authorized domain
 
 ### Bước 9. Chạy toàn bộ stack lần đầu
 
-Trên VM, bằng user `deploy`:
+Trên VM, bằng user `deploy`. Trước tiên đặt file embedding của category vào `data/`, bằng cách tải theo link trong `Jobbeacon-be/README.md` hoặc chép từ máy bạn:
+
+```bash
+# chạy trên máy bạn
+scp category_embeddings.json deploy@<IP tĩnh>:/opt/jobbeacon/jobbeacon-deployment/data/
+```
+
+Khi khởi động, BE nạp file này vào bảng `category`. Từ lần sau, thấy mọi category đã có embedding thì BE bỏ qua. Thiếu file thì BE vẫn chạy, nhưng job crawl về sẽ không được phân loại category. Nếu đặt file vào sau khi BE đã chạy, chạy `docker compose restart backend`.
 
 ```bash
 cd /opt/jobbeacon/jobbeacon-deployment
@@ -180,10 +188,6 @@ docker stats --no-stream                                          # RAM từng c
 Mở `http://<IP tĩnh>` trên trình duyệt, đăng nhập thử, xem danh sách job.
 
 Từ giờ, push `main` ở repo nào thì CI tự deploy repo đó.
-
-### Việc còn tồn đọng
-
-`category_embeddings.json` (~50MB, xem `Jobbeacon-be/README.md`) được BE đọc từ classpath, nhưng image build trên GitHub Actions không có file này. Nếu chưa sửa BE để đọc file từ một đường dẫn mount vào container, tính năng phân loại category sẽ không hoạt động trên VM.
 
 ### Trang nội bộ
 
