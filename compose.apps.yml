@@ -151,6 +151,9 @@ services:
       PLAYWRIGHT_PROXIES: ${PLAYWRIGHT_PROXIES:-}
       CRAWLER_WORKER_POOL_SIZE: ${CRAWLER_WORKER_POOL_SIZE:-1}
       CRAWLER_MAX_DEPTH: ${CRAWLER_MAX_DEPTH:-5}
+      # LLM discovery of the HTML XPaths for domains without configuration (table domain_extractor_config)
+      STRUCTURE_DISCOVERY_ENABLED: ${CRAWLER_STRUCTURE_DISCOVERY_ENABLED:-false}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
       EUREKA_URL: ${EUREKA_URL:-http://discovery:8761/eureka/}
       TZ: Asia/Ho_Chi_Minh
