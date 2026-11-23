@@ -210,3 +210,32 @@ docker compose up -d --no-build      # áp dụng thay đổi trong .env
 ```
 
 Đừng chạy `docker compose down -v`, vì lệnh này xoá cả volume dữ liệu. Sync và recommendation mỗi bên giữ một replication slot của Postgres. Nếu tắt chúng lâu, WAL sẽ dồn lại và làm đầy đĩa.
+
+Theo dõi slot (`active` phải là `t`, `retained` không tăng dần):
+
+```bash
+docker compose exec postgres psql -U postgres -d job_platform -c "select slot_name, active, wal_status, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) as retained from pg_replication_slots"
+```
+
+### Slot bị mất (`wal_status = lost`)
+
+Slot bị bỏ khi consumer tắt đủ lâu để WAL vượt `POSTGRES_MAX_SLOT_WAL`. Không mất dữ liệu vì outbox vẫn còn trong Postgres, chỉ phải đồng bộ lại. Với recommendation:
+
+```bash
+docker compose stop recommendation
+docker compose exec postgres psql -U postgres -d job_platform -c "select pg_drop_replication_slot('jobbeacon_graph')"
+docker compose exec postgres psql -U postgres -d jobbeacon_recommendation -c "delete from debezium_offset_storage"
+docker compose start recommendation   # Debezium snapshot lại toàn bộ outbox
+```
+
+Với sync thì làm tương tự: dừng `sync`, xoá slot `jobbeacon_search` và offset của nó trong DB mà `sync` dùng, rồi dựng lại index theo README của sync.
+
+### Khi Redis mất dữ liệu
+
+Không cần khôi phục bằng tay, chỉ cần khởi động lại crawler:
+
+```bash
+docker compose restart crawler
+```
+
+Crawler nạp lại Bloom filter từ bảng `crawled_url` và đẩy lại các URL gốc khi khởi động. Nếu không khởi động lại, nó crawl lại các tin cũ. Phiên chat đang mở của BE cũng nằm trong Redis nên sẽ mất.

@@ -11,6 +11,10 @@ services:
       - max_wal_senders=10
       - -c
       - max_replication_slots=10
+      # A consumer that stays down makes its slot keep WAL forever and fill the disk. Past this limit the slot is
+      # invalidated instead and that consumer has to sync from scratch (README, "Slot bị mất").
+      - -c
+      - max_slot_wal_keep_size=${POSTGRES_MAX_SLOT_WAL:-4GB}
     logging:
       driver: json-file
       options:
@@ -68,7 +72,9 @@ services:
         max-size: "10m"
         max-file: "5"
     environment:
-      REDIS_ARGS: "--appendonly yes"
+      # redis-stack-server writes to /var/lib/redis-stack unless told otherwise, so without --dir nothing reaches the
+      # volume and recreating the container loses the crawler's Bloom filter and URL queue.
+      REDIS_ARGS: "--appendonly yes --dir /data"
       BLOOM_FILTER_NAME: ${BLOOM_FILTER_NAME:-crawler:urls}
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
