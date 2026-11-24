@@ -266,6 +266,19 @@ services:
     networks:
       - jobbeacon
 
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: jobbeacon-node-exporter
+    # Host network + root filesystem bind mount so it reports the real machine's CPU/RAM/disk,
+    # not the container's own. Linux only.
+    network_mode: host
+    pid: host
+    command:
+      - "--path.rootfs=/host"
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped
+
   prometheus:
     image: prom/prometheus:latest
     logging:
@@ -281,6 +294,14 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+    # node-exporter uses network_mode: host (so it reports the real machine, not a container), which means
+    # it has no service name on the jobbeacon network; reach it via host.docker.internal:9100 instead.
+    # The "host-gateway" magic value resolves to the default bridge's gateway (172.17.0.1), not this
+    # custom network's own gateway, so it's pinned explicitly below instead. If `docker network inspect
+    # jobbeacon_jobbeacon --format '{{json .IPAM.Config}}'` ever reports a different gateway (e.g. after
+    # `docker compose down` + recreate with a different subnet), update this to match.
+    extra_hosts:
+      - "host.docker.internal:172.26.0.1"
     depends_on:
       crawler:
         condition: service_healthy
@@ -306,6 +327,11 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      # Lets the admin site embed dashboards in an iframe as a read-only, unauthenticated viewer.
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "false"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
