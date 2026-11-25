@@ -12,6 +12,7 @@ services:
     environment:
       PORT: 8761
       EUREKA_HOSTNAME: discovery
+      LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
       TZ: Asia/Ho_Chi_Minh
       JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh ${DISCOVERY_JAVA_OPTS:-}"
     ports:
@@ -109,6 +110,7 @@ services:
       # Routes resolve the backend and recommendation by their Eureka names (lb://...), not by URL.
       EUREKA_URL: ${EUREKA_URL:-http://discovery:8761/eureka/}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
       TZ: Asia/Ho_Chi_Minh
       JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh ${GATEWAY_JAVA_OPTS:-}"
     ports:
@@ -201,6 +203,7 @@ services:
       SYNC_SLOT_NAME: ${SYNC_SLOT_NAME:-jobbeacon_search}
       SYNC_PUBLICATION_NAME: ${SYNC_PUBLICATION_NAME:-jobbeacon_search}
       EUREKA_URL: ${EUREKA_URL:-http://discovery:8761/eureka/}
+      LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
       TZ: Asia/Ho_Chi_Minh
       JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh ${SYNC_JAVA_OPTS:-}"
     ports:
@@ -255,6 +258,7 @@ services:
       RECOMMENDATION_POOL_SIZE: ${RECOMMENDATION_POOL_SIZE:-100}
       RECOMMENDATION_SAMPLING_TEMPERATURE: ${RECOMMENDATION_SAMPLING_TEMPERATURE:-0.5}
       RECOMMENDATION_APPLIED_HIDDEN_FOR: ${RECOMMENDATION_APPLIED_HIDDEN_FOR:-P14D}
+      LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
       TZ: Asia/Ho_Chi_Minh
       JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh ${RECOMMENDATION_JAVA_OPTS:-}"
     ports:

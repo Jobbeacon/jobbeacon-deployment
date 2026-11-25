@@ -1,4 +1,17 @@
 services:
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: jobbeacon-node-exporter
+    # Host network + root filesystem bind mount so it reports the real machine's CPU/RAM/disk, not a
+    # container's. Linux only; not reachable from outside since it never publishes a host port.
+    network_mode: host
+    pid: host
+    command:
+      - "--path.rootfs=/host"
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped
+
   loki:
     image: grafana/loki:3.5.0
     logging:
@@ -37,6 +50,10 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+    # node-exporter uses network_mode: host (so it reports the real machine), so it has no service name
+    # on the jobbeacon network; host.docker.internal:9100 in prometheus.yml resolves through this instead.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://localhost:9090/-/healthy"]
       interval: 10s
@@ -59,6 +76,13 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      # Lets a frontend (e.g. the admin site) embed dashboards in an iframe as a read-only, unauthenticated
+      # Viewer. Grafana is already only reachable via SSH tunnel (port bound to 127.0.0.1), so this mainly
+      # removes the separate Grafana login for whoever already tunneled in — opt out by deleting these two
+      # lines if that's not an acceptable tradeoff.
+      GF_SECURITY_ALLOW_EMBEDDING: ${GRAFANA_ALLOW_EMBEDDING:-true}
+      GF_AUTH_ANONYMOUS_ENABLED: ${GRAFANA_ANONYMOUS_ENABLED:-true}
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
