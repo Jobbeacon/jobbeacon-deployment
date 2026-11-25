@@ -309,8 +309,12 @@ services:
       VITE_FIREBASE_STORAGE_BUCKET: ${VITE_FIREBASE_STORAGE_BUCKET:-your-project.firebasestorage.app}
       VITE_FIREBASE_MESSAGING_SENDER_ID: ${VITE_FIREBASE_MESSAGING_SENDER_ID:-your_sender_id}
       VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID:-your_app_id}
+      # Admin only: "view on site" links and the embedded Grafana dashboards page. Empty hides each.
+      VITE_USER_SITE_URL: ${VITE_USER_SITE_URL:-}
+      VITE_GRAFANA_URL: ${VITE_GRAFANA_URL:-}
     ports:
       - "${FRONTEND_BIND:-127.0.0.1}:${FRONTEND_PORT:-3000}:80"
+      - "${FRONTEND_ADMIN_BIND:-127.0.0.1}:${FRONTEND_ADMIN_PORT:-3002}:8080"
     depends_on:
       gateway:
         condition: service_started
