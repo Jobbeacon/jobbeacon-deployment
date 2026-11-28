@@ -154,6 +154,9 @@ services:
       JOB_URL_BLOOM_FILTER_NAME: ${BLOOM_FILTER_NAME:-crawler:urls}
       PLAYWRIGHT_HEADLESS: ${PLAYWRIGHT_HEADLESS:-true}
       PLAYWRIGHT_PROXIES: ${PLAYWRIGHT_PROXIES:-}
+      PLAYWRIGHT_SETTLE_TIME: ${PLAYWRIGHT_SETTLE_TIME:-10s}
+      PLAYWRIGHT_BLOCK_RESOURCES: ${PLAYWRIGHT_BLOCK_RESOURCES:-true}
+      PLAYWRIGHT_PROXY_COOLDOWN: ${PLAYWRIGHT_PROXY_COOLDOWN:-5m}
       CRAWLER_WORKER_POOL_SIZE: ${CRAWLER_WORKER_POOL_SIZE:-1}
       CRAWLER_MAX_DEPTH: ${CRAWLER_MAX_DEPTH:-5}
       # LLM discovery of the HTML XPaths for domains without configuration (table domain_extractor_config)
@@ -165,6 +168,12 @@ services:
       JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh ${CRAWLER_JAVA_OPTS:-}"
     ports:
       - "127.0.0.1:${CRAWLER_PORT:-8081}:8081"
+    # Each worker runs its own Chromium: without a cap, a few workers take every core of the VM and the
+    # backend, Elasticsearch and Postgres slow down for users. Raise CRAWLER_CPUS together with the pool size.
+    cpus: ${CRAWLER_CPUS:-2}
+    mem_limit: ${CRAWLER_MEM_LIMIT:-3g}
+    # Chromium keeps its renderer buffers in /dev/shm; Docker's 64MB default makes tabs crash under load.
+    shm_size: ${CRAWLER_SHM_SIZE:-512m}
     depends_on:
       postgres:
         condition: service_healthy
