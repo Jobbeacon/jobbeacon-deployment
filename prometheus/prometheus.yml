@@ -6,10 +6,12 @@ scrape_configs:
     static_configs:
       - targets: ["host.docker.internal:9100"]
 
+  # crawler:8081 is the container; host.docker.internal:8081 is a crawler started on the machine itself
+  # (mvn spring-boot:run). Only one of them answers, the other target stays down.
   - job_name: crawler
     metrics_path: /job-posting-crawler/actuator/prometheus
     static_configs:
-      - targets: ["crawler:8081"]
+      - targets: ["crawler:8081", "host.docker.internal:8081"]
 
   - job_name: backend
     metrics_path: /jobbeacon-be/actuator/prometheus
